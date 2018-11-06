@@ -13,6 +13,8 @@
       "method": "POST",
       "component_id": 1,
       "metric_id": 4,
+      "on_success": "/fullpath/shellhook_onsuccess.sh",
+      "on_failure": "/fullpath/shellhook_onfailure.sh",
       "template": {
         "investigating": {
           "subject": "{{ .Monitor.Name }} - {{ .SystemName }}",
@@ -24,7 +26,9 @@
       },
       "interval": 1,
       "timeout": 1,
-      "threshold": 80,
+      "resync": 60,
+      "threshold": 50,
+      "threshold_critical": 80,
       "headers": {
         "Authorization": "Basic <hash>"
       },

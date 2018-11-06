@@ -18,8 +18,17 @@ monitors:
     
     # set to update component (either component_id or metric_id are required)
     component_id: 1
-    # set to post lag to cachet metric (graph)
+    
+    # set to post to cachet metric (graph)
+    metrics:
+        response_time: [ 4, 5 ]
+
+    # set to post lag to cachet metric (graph) - obsolete
     metric_id: 4
+
+    # launch script depending on event (failed or successful check)
+    on_success: /fullpath/shellhook_onsuccess.sh
+    on_failure: /fullpath/shellhook_onfailure.sh
 
     # custom templates (see readme for details)
     template:
@@ -33,8 +42,15 @@ monitors:
     interval: 1
     # seconds for timeout
     timeout: 1
+
+    # resync component data every x check
+    resync: 60
+
     # If % of downtime is over this threshold, open an incident
-    threshold: 80
+    # threshold: 50
+    history_size: 10
+    threshold_critical: 80
+    threshold_partial: 20
 
     # custom HTTP headers
     headers:
@@ -43,6 +59,21 @@ monitors:
     expected_status_code: 200
     # regex to match body
     expected_body: "P.*NG"
+
+  # mock monitor example
+  - name: mock
+    
+    # set to update component (either component_id or metric_id are required)
+    component_id: 3
+
+    # seconds between checks
+    interval: 1
+
+    type: mock
+
+    shellhook:
+        on_success: /fullpath/shellhook_onsuccess.sh
+
   # dns monitor example
   - name: dns
     # fqdn
@@ -58,8 +89,6 @@ monitors:
     # custom DNS server (defaults to system)
     dns: 8.8.4.4:53
     answers:
-      # exact/regex check
-      - regex: [1-9] alt[1-9].aspmx.l.google.com.
       - exact: 10 aspmx2.googlemail.com.
       - exact: 1 aspmx.l.google.com.
       - exact: 10 aspmx3.googlemail.com.

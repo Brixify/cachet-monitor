@@ -10,6 +10,14 @@
 - [x] Updates Component to Major Outage if already in Partial Outage (works with distributed monitors)
 - [x] Can be run on multiple servers and geo regions
 
+## Docker publication
+
+Docker builds are automaticaly created and stored in https://hub.docker.com/r/veekee/cachet-monitor/.
+Note: Docker images only support yml configuration file format (cachet-monitor.yml).
+
+Note 2 : Script "/www/scripts/hook-prestart.sh" will be started if present
+
+
 ## Example Configuration
 
 **Note:** configuration can be in json or yaml format. [`example.config.json`](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.json), [`example.config.yaml`](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.yml) files.
@@ -47,12 +55,19 @@ monitors:
       fixed:
         subject: "I HAVE BEEN FIXED"
     
+    # launch script depending on event (failed or successful check)
+    shellhook:
+        on_success: /fullpath/shellhook_onsuccess.sh
+        on_failure: /fullpath/shellhook_onfailure.sh
+
     # seconds between checks
     interval: 1
     # seconds for timeout
     timeout: 1
     # If % of downtime is over this threshold, open an incident
-    threshold: 80
+    threshold: 50
+    # If % of downtime is over this threshold, set component's status as "Major Outage"
+    threshold_critical: 80
 
     # custom HTTP headers
     headers:
@@ -93,11 +108,13 @@ pro tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-mo
 
 ```
 Usage:
-  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
+  cachet-monitor (-c PATH | --config PATH)
+  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate] [--config-test] [--log-level=LOGLEVEL]
   cachet-monitor -h | --help | --version
 
 Arguments:
   PATH     path to config.json
+  LOGLEVEL log level (debug, info, warn, error or fatal)
   LOGPATH  path to log output (defaults to STDOUT)
   NAME     name of this logger
 
@@ -106,10 +123,13 @@ Examples:
   cachet-monitor -c /root/cachet-monitor.json --log=/var/log/cachet-monitor.log --name="development machine"
 
 Options:
-  -c PATH.json --config PATH     Path to configuration file
   -h --help                      Show this screen.
-  --version                      Show version
-  --immediate                    Tick immediately (by default waits for first defined interval)
+  -c PATH.json --config PATH     Path to configuration file
+  [--log]		                 Sets log file
+  [--log-level]		         Sets log level
+  [--config-test]                Check configuration file
+  [--version]                      Show version
+  [--immediate]                    Tick immediately (by default waits for first defined interval)
   
 Environment varaibles:
   CACHET_API      override API url from configuration

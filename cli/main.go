@@ -12,40 +12,56 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	cachet "github.com/castawaylabs/cachet-monitor"
+	"cachet"
 	docopt "github.com/docopt/docopt-go"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
 )
 
+var AppBranch string
+var Build string
+var BuildDate string
+
 const usage = `cachet-monitor
 
 Usage:
-  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
+  cachet-monitor (-c PATH | --config PATH)
+  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate] [--config-test] [--log-level=LOGLEVEL]
   cachet-monitor -h | --help | --version
+
+Options:
+  -h --help                      Show this screen.
+  -c PATH.json --config PATH     Path to configuration file
+  [--log]		         Sets log file
+  [--log-level]		         Sets log level
+  [--config-test]                Check configuration file
+  [--version]                    Show version
+  [--immediate]                  Tick immediately (by default waits for first defined interval)
 
 Arguments:
   PATH     path to config.json
+  LOGLEVEL log level (debug, info, warn, error or fatal)
   LOGPATH  path to log output (defaults to STDOUT)
   NAME     name of this logger
 
 Examples:
   cachet-monitor -c /root/cachet-monitor.json
+  cachet-monitor -c /root/cachet-monitor.json --config-test
   cachet-monitor -c /root/cachet-monitor.json --log=/var/log/cachet-monitor.log --name="development machine"
+  cachet-monitor -c /root/cachet-monitor.json --log=/var/log/cachet-monitor.log
 
-Options:
-  -c PATH.json --config PATH     Path to configuration file
-  -h --help                      Show this screen.
-  --version                      Show version
-  --immediate                    Tick immediately (by default waits for first defined interval)
-  
-Environment varaibles:
+Environment variables:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration
   CACHET_DEV      set to enable dev logging`
 
 func main() {
-	arguments, _ := docopt.Parse(usage, nil, true, "cachet-monitor", false)
+	arguments, err := docopt.Parse(usage, nil, true, "cachet-monitor - " + AppBranch + "\nBuild commit: " + Build + "\nBuild date: " + BuildDate, false)
+	if err != nil {
+		logrus.Panicf("Unable to start (reading config): %v", err)
+	}
+
+	logrus.SetOutput(getLogger(arguments["--log"]))
 
 	cfg, err := getConfiguration(arguments["--config"].(string))
 	if err != nil {
@@ -59,7 +75,23 @@ func main() {
 	if name := arguments["--name"]; name != nil {
 		cfg.SystemName = name.(string)
 	}
-	logrus.SetOutput(getLogger(arguments["--log"]))
+
+	if loglevel := arguments["--log-level"]; loglevel != nil {
+		switch loglevel {
+			case "debug":
+				logrus.SetLevel(logrus.DebugLevel)
+			case "info":
+				logrus.SetLevel(logrus.InfoLevel)
+			case "warn":
+				logrus.SetLevel(logrus.WarnLevel)
+			case "error":
+				logrus.SetLevel(logrus.ErrorLevel)
+			case "fatal":
+				logrus.SetLevel(logrus.FatalLevel)
+			default:
+				logrus.Panicf("Unknown '%s' as log level", loglevel)
+		}
+	}
 
 	if len(os.Getenv("CACHET_API")) > 0 {
 		cfg.API.URL = os.Getenv("CACHET_API")
@@ -74,6 +106,13 @@ func main() {
 	if valid := cfg.Validate(); !valid {
 		logrus.Errorf("Invalid configuration")
 		os.Exit(1)
+	}
+
+	if configtest, ok := arguments["--config-test"]; ok {
+		if configtest.(bool) {
+			logrus.Infof("Configuration is valid!")
+			os.Exit(0)
+		}
 	}
 
 	logrus.Debug("Configuration valid")
@@ -93,7 +132,12 @@ func main() {
 		logrus.Infof("Starting Monitor #%d: ", index)
 		logrus.Infof("Features: \n - %v", strings.Join(monitor.Describe(), "\n - "))
 
-		go monitor.ClockStart(cfg, monitor, wg)
+		if monitor.Init(cfg) {
+			go monitor.ClockStart(cfg, monitor, wg)
+			logrus.Infof("Monitor #%d has been started", index)
+		} else {
+			logrus.Errorf("Monitor #%d has been skipped", index)
+		}
 	}
 
 	signals := make(chan os.Signal, 1)
@@ -169,17 +213,21 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 		}
 
 		switch monType {
-		case "http":
-			var s cachet.HTTPMonitor
-			err = mapstructure.Decode(rawMonitor, &s)
-			t = &s
-		case "dns":
-			var s cachet.DNSMonitor
-			err = mapstructure.Decode(rawMonitor, &s)
-			t = &s
-		default:
-			logrus.Errorf("Invalid monitor type (index: %d) %v", index, monType)
-			continue
+			case "http":
+				var s cachet.HTTPMonitor
+				err = mapstructure.Decode(rawMonitor, &s)
+				t = &s
+			case "dns":
+				var s cachet.DNSMonitor
+				err = mapstructure.Decode(rawMonitor, &s)
+				t = &s
+			case "mock":
+				var s cachet.MockMonitor
+				err = mapstructure.Decode(rawMonitor, &s)
+				t = &s
+			default:
+				logrus.Errorf("Invalid monitor type (index: %d) %v", index, monType)
+				continue
 		}
 
 		t.GetMonitor().Type = monType

@@ -61,7 +61,7 @@ func (monitor *DNSMonitor) Validate() []string {
 	return errs
 }
 
-func (monitor *DNSMonitor) test() bool {
+func (monitor *DNSMonitor) test(l *logrus.Entry) bool {
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(monitor.Target), monitor.question)
 	m.RecursionDesired = true
@@ -91,6 +91,8 @@ func (monitor *DNSMonitor) test() bool {
 			return false
 		}
 	}
+
+	monitor.triggerShellHook(l, "on_success", monitor.ShellHookOnSuccess, "")
 
 	return true
 }
