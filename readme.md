@@ -40,7 +40,7 @@ monitors:
     strict: true
     # HTTP method
     method: POST
-    
+
     # set to update component (either component_id or metric_id are required)
     component_id: 1
     # set to post lag to cachet metric (graph)
@@ -54,7 +54,7 @@ monitors:
         message: "{{ .Monitor.Name }} check **failed** (server time: {{ .now }})\n\n{{ .FailReason }}"
       fixed:
         subject: "I HAVE BEEN FIXED"
-    
+
     # launch script depending on event (failed or successful check)
     shellhook:
         on_success: /fullpath/shellhook_onsuccess.sh
@@ -130,7 +130,7 @@ Options:
   [--config-test]                Check configuration file
   [--version]                      Show version
   [--immediate]                    Tick immediately (by default waits for first defined interval)
-  
+
 Environment varaibles:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration
@@ -151,12 +151,12 @@ This package makes use of [`text/template`](https://godoc.org/text/template). [D
 
 The following variables are available:
 
-| Root objects  |
-| ------------- | -----------------
-| `.SystemName` | system name
-| `.API`        | `api` object from configuration
-| `.Monitor`    | `monitor` object from configuration
-| `.now`        | formatted date string
+| Root objects  |                                     |
+| ------------- | ----------------------------------- |
+| `.SystemName` | system name                         |
+| `.API`        | `api` object from configuration     |
+| `.Monitor`    | `monitor` object from configuration |
+| `.now`        | formatted date string               |
 
 | Monitor variables  |
 | ------------------ |
@@ -167,7 +167,7 @@ The following variables are available:
 | `.MetricID`        |
 | ...                |
 
-All monitor variables are available from `monitor.go`
+All monitor variables are available from `monitor.go` in the `AbstractMonitor` type.
 
 ## Vision and goals
 
@@ -178,7 +178,7 @@ This gives us power to have an army of geographically distributed loggers and re
 
 ## Package usage
 
-When using `cachet-monitor` as a package in another program, you should follow what `cli/main.go` does. It is important to call `Validate` on `CachetMonitor` and all the monitors inside.
+When using `cachet-monitor` as a package in another program, you should follow what `cmd/main.go` does. It is important to call `Validate` on `CachetMonitor` and all the monitors inside.
 
 [API Documentation](https://godoc.org/github.com/CastawayLabs/cachet-monitor)
 

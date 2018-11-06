@@ -44,14 +44,14 @@ func (api CachetAPI) Ping() error {
 
 // SendMetric adds a data point to a cachet monitor - Deprecated
 func (api CachetAPI) SendMetric(l *logrus.Entry, id int, lag int64) {
-	api.SendMetrics(l, "lag", []int { id }, lag)
+	api.SendMetrics(l, "lag", []int{id}, lag)
 }
 
 // CheckAPIStatus displays and error message if return values are invalid
 func (api CachetAPI) CheckAPIStatus(l *logrus.Entry, label string, resp *http.Response, err error) bool {
 	returnCode := false
 
-	if err != nil  {
+	if err != nil {
 		if l != nil {
 			l.Warnf("%s returns an error (err: %v)", label, err)
 		}
@@ -87,15 +87,15 @@ func (api CachetAPI) SendMetrics(l *logrus.Entry, metricname string, arr []int, 
 			"timestamp": time.Now().Unix(),
 		})
 
-		resp,_, err := api.NewRequest("POST", "/metrics/"+strconv.Itoa(v)+"/points", jsonBytes)
+		resp, _, err := api.NewRequest("POST", "/metrics/"+strconv.Itoa(v)+"/points", jsonBytes)
 		api.CheckAPIStatus(l, metricname+" metric (id: "+strconv.Itoa(v)+" => "+strconv.FormatInt(val, 10)+")", resp, err)
 	}
 }
 
 // TODO: test
 // GetComponentData
-func (api CachetAPI) GetComponentData(compid int) (Component) {
-	l := logrus.WithFields(logrus.Fields{ "id": compid })
+func (api CachetAPI) GetComponentData(compid int) Component {
+	l := logrus.WithFields(logrus.Fields{"id": compid})
 	l.Debugf("Getting data from component ID:%d", compid)
 
 	resp, body, err := api.NewRequest("GET", "/components/"+strconv.Itoa(compid), []byte(""))
@@ -108,12 +108,12 @@ func (api CachetAPI) GetComponentData(compid int) (Component) {
 }
 
 // SetComponentStatus
-func (api CachetAPI) SetComponentStatus(comp *AbstractMonitor, status int) (Component) {
-	l := logrus.WithFields(logrus.Fields{ "id": comp.ComponentID })
+func (api CachetAPI) SetComponentStatus(comp *AbstractMonitor, status int) Component {
+	l := logrus.WithFields(logrus.Fields{"id": comp.ComponentID})
 	l.Debugf("Setting new status (%d) to component ID: %d (instead of %d)", status, comp.ComponentID, comp.currentStatus)
 
 	jsonBytes, _ := json.Marshal(map[string]interface{}{
-		"status":     status,
+		"status": status,
 	})
 
 	resp, body, err := api.NewRequest("PUT", "/components/"+strconv.Itoa(comp.ComponentID), jsonBytes)
